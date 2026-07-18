@@ -1,684 +1,135 @@
-<!-- Index · HTML -->
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Waypoint — AI Travel Planner</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
-<style>
-  :root{
-    --ink:#0F1B2E;
-    --ink-2:#16283F;
-    --paper:#EDE9DD;
-    --gold:#D4A24C;
-    --teal:#5FA8A0;
-    --coral:#E2572B;
-    --line:rgba(237,233,221,0.14);
-    --radius:14px;
-  }
-  *{box-sizing:border-box;}
-  body{
-    margin:0;
-    background:var(--ink);
-    color:var(--paper);
-    font-family:'Inter',sans-serif;
-    -webkit-font-smoothing:antialiased;
-  }
-  h1,h2,h3,.display{
-    font-family:'Fraunces',serif;
-    font-weight:600;
-    letter-spacing:-0.01em;
-  }
-  .mono{font-family:'IBM Plex Mono',monospace;}
-  .wrap{max-width:1000px;margin:0 auto;padding:0 24px;}
- 
-  /* Header */
-  header{
-    padding:40px 24px 28px;
-    border-bottom:1px solid var(--line);
-    background:
-      radial-gradient(circle at 85% -20%, rgba(212,162,76,0.18), transparent 55%),
-      var(--ink);
-  }
-  header .wrap{display:flex;align-items:baseline;justify-content:space-between;flex-wrap:wrap;gap:12px;}
-  .brand{display:flex;align-items:baseline;gap:10px;}
-  .brand .mark{color:var(--gold);font-size:28px;}
-  header h1{font-size:28px;margin:0;}
-  header p{margin:4px 0 0;color:#B9C2CE;font-size:14px;}
- 
-  nav.tabs{
-    display:flex;gap:4px;margin-top:24px;flex-wrap:wrap;
-  }
-  nav.tabs button{
-    background:none;border:1px solid var(--line);color:var(--paper);
-    padding:10px 18px;border-radius:999px;font-family:'Inter';font-size:14px;font-weight:500;
-    cursor:pointer;transition:all .15s ease;
-  }
-  nav.tabs button.active{background:var(--gold);color:var(--ink);border-color:var(--gold);}
-  nav.tabs button:not(.active):hover{border-color:var(--gold);color:var(--gold);}
- 
-  main{padding:36px 24px 80px;}
-  section.panel{display:none;}
-  section.panel.active{display:block;animation:fade .25s ease;}
-  @keyframes fade{from{opacity:0;transform:translateY(4px);}to{opacity:1;transform:none;}}
- 
-  /* Form */
-  .card{
-    background:var(--ink-2);
-    border:1px solid var(--line);
-    border-radius:var(--radius);
-    padding:24px;
-  }
-  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
-  @media(max-width:640px){.grid2{grid-template-columns:1fr;}}
-  label{display:block;font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--teal);margin-bottom:6px;font-weight:600;}
-  input[type=text],input[type=number],select{
-    width:100%;padding:11px 12px;border-radius:8px;border:1px solid var(--line);
-    background:var(--ink);color:var(--paper);font-family:'Inter';font-size:14px;margin-bottom:16px;
-  }
-  input:focus,select:focus{outline:2px solid var(--gold);outline-offset:1px;}
-  .chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px;}
-  .chip{
-    padding:7px 14px;border-radius:999px;border:1px solid var(--line);font-size:13px;cursor:pointer;
-    user-select:none;
-  }
-  .chip.selected{background:var(--teal);border-color:var(--teal);color:var(--ink);font-weight:600;}
- 
-  .btn{
-    background:var(--gold);color:var(--ink);border:none;padding:13px 24px;border-radius:8px;
-    font-weight:700;font-size:14px;cursor:pointer;font-family:'Inter';
-  }
-  .btn:hover{filter:brightness(1.08);}
-  .btn:disabled{opacity:.5;cursor:not-allowed;}
-  .btn.secondary{background:none;border:1px solid var(--gold);color:var(--gold);}
- 
-  .loading{display:flex;align-items:center;gap:10px;color:var(--gold);font-size:14px;margin-top:16px;}
-  .spinner{width:16px;height:16px;border:2px solid rgba(212,162,76,.3);border-top-color:var(--gold);border-radius:50%;animation:spin .7s linear infinite;}
-  @keyframes spin{to{transform:rotate(360deg);}}
- 
-  /* Results */
-  .results{margin-top:32px;}
-  .dest-row{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:32px;}
-  @media(max-width:720px){.dest-row{grid-template-columns:1fr;}}
-  .dest-card{background:var(--ink-2);border:1px solid var(--line);border-radius:var(--radius);padding:18px;position:relative;}
-  .dest-card.chosen{border-color:var(--gold);box-shadow:0 0 0 1px var(--gold) inset;}
-  .dest-card.chosen::before{
-    content:"Chosen route";font-family:'IBM Plex Mono';font-size:10px;text-transform:uppercase;letter-spacing:.08em;
-    color:var(--ink);background:var(--gold);padding:3px 8px;border-radius:4px;position:absolute;top:-10px;left:16px;
-  }
-  .dest-card h3{margin:6px 0 4px;font-size:19px;}
-  .dest-card .country{color:var(--teal);font-size:12px;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;}
-  .dest-card p{font-size:13.5px;color:#C7CFDA;margin:6px 0;line-height:1.5;}
- 
-  h2.section-title{font-size:22px;margin:0 0 18px;display:flex;align-items:center;gap:10px;}
-  h2.section-title .mono{font-size:12px;color:var(--gold);border:1px solid var(--gold);padding:2px 8px;border-radius:999px;}
- 
-  /* Itinerary route */
-  .route{position:relative;margin-left:14px;padding-left:26px;border-left:2px dotted var(--gold);margin-bottom:36px;}
-  .day{position:relative;padding-bottom:26px;}
-  .day:last-child{padding-bottom:0;}
-  .day::before{
-    content:"";position:absolute;left:-33px;top:4px;width:12px;height:12px;border-radius:50%;
-    background:var(--teal);border:2px solid var(--ink);
-  }
-  .day .daynum{font-family:'IBM Plex Mono';color:var(--gold);font-size:12px;margin-bottom:4px;}
-  .day h3{margin:0 0 8px;font-size:18px;}
-  .day .slot{font-size:13.5px;margin:4px 0;color:#C7CFDA;line-height:1.5;}
-  .day .slot b{color:var(--paper);font-weight:600;}
-  .day .tip{margin-top:8px;font-size:13px;color:var(--teal);font-style:italic;}
- 
-  /* Budget */
-  .budget-total{display:flex;align-items:baseline;gap:10px;margin-bottom:16px;}
-  .budget-total .amt{font-family:'Fraunces';font-size:34px;color:var(--gold);}
-  .budget-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:36px;}
-  @media(max-width:640px){.budget-grid{grid-template-columns:1fr;}}
-  .budget-item{background:var(--ink-2);border:1px solid var(--line);border-radius:10px;padding:12px 14px;}
-  .budget-item .k{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--teal);margin-bottom:4px;}
-  .budget-item .v{font-size:13.5px;color:#DCE2E9;}
- 
-  /* Packing */
-  .pack-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
-  @media(max-width:640px){.pack-grid{grid-template-columns:1fr;}}
-  .pack-cat{background:var(--ink-2);border:1px solid var(--line);border-radius:var(--radius);padding:16px;}
-  .pack-cat h4{margin:0 0 10px;font-size:14px;color:var(--gold);text-transform:uppercase;letter-spacing:.04em;}
-  .pack-cat ul{margin:0;padding-left:0;list-style:none;}
-  .pack-cat li{font-size:13.5px;padding:6px 0;border-bottom:1px dashed var(--line);display:flex;gap:8px;align-items:flex-start;}
-  .pack-cat li:last-child{border-bottom:none;}
-  .pack-cat input[type=checkbox]{margin-top:3px;accent-color:var(--teal);}
-  .pack-cat li.checked span{text-decoration:line-through;color:#7C8794;}
- 
-  /* Flashcards */
-  .fc-controls{display:flex;gap:12px;align-items:end;flex-wrap:wrap;margin-bottom:8px;}
-  .fc-controls .field{flex:1;min-width:180px;}
-  .fc-stage{margin-top:28px;display:flex;flex-direction:column;align-items:center;gap:18px;}
-  .flashcard{
-    width:100%;max-width:520px;height:270px;perspective:1200px;cursor:pointer;
-  }
-  .flashcard .inner{
-    position:relative;width:100%;height:100%;transition:transform .5s cubic-bezier(.2,.8,.2,1);
-    transform-style:preserve-3d;
-  }
-  .flashcard.flipped .inner{transform:rotateY(180deg);}
-  .face{
-    position:absolute;inset:0;backface-visibility:hidden;border-radius:18px;
-    padding:26px;display:flex;flex-direction:column;justify-content:center;
-    border:1px solid var(--line);
-  }
-  .face.front{background:linear-gradient(160deg,var(--ink-2),#1C324F);}
-  .face.back{background:linear-gradient(160deg,#2B4A46,#1B3330);transform:rotateY(180deg);}
-  .face .cat{font-family:'IBM Plex Mono';font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--gold);margin-bottom:12px;}
-  .face .txt{font-family:'Fraunces';font-size:21px;line-height:1.4;}
-  .face .hint{position:absolute;bottom:14px;right:18px;font-size:11px;color:#7C8794;}
-  .fc-nav{display:flex;align-items:center;gap:18px;}
-  .fc-nav .count{font-family:'IBM Plex Mono';font-size:13px;color:var(--teal);}
-  .fc-nav button{background:none;border:1px solid var(--line);color:var(--paper);border-radius:8px;padding:8px 14px;cursor:pointer;}
-  .fc-nav button:hover{border-color:var(--gold);color:var(--gold);}
- 
-  /* Quiz */
-  .quiz-controls{display:flex;gap:12px;align-items:end;flex-wrap:wrap;}
-  .qcard{background:var(--ink-2);border:1px solid var(--line);border-radius:var(--radius);padding:22px;margin-top:24px;}
-  .qcard .qnum{font-family:'IBM Plex Mono';color:var(--gold);font-size:12px;margin-bottom:8px;}
-  .qcard h3{margin:0 0 16px;font-size:19px;}
-  .opt{
-    display:block;width:100%;text-align:left;padding:12px 14px;margin-bottom:9px;border-radius:9px;
-    border:1px solid var(--line);background:var(--ink);color:var(--paper);cursor:pointer;font-size:14px;font-family:'Inter';
-  }
-  .opt:hover{border-color:var(--teal);}
-  .opt.correct{background:rgba(95,168,160,.22);border-color:var(--teal);}
-  .opt.wrong{background:rgba(226,87,43,.2);border-color:var(--coral);}
-  .opt:disabled{cursor:default;}
-  .explain{font-size:13.5px;color:#C7CFDA;margin-top:6px;padding-top:10px;border-top:1px dashed var(--line);}
-  .quiz-nav{display:flex;justify-content:space-between;align-items:center;margin-top:18px;}
-  .score-banner{
-    text-align:center;padding:34px 20px;background:var(--ink-2);border:1px solid var(--gold);border-radius:var(--radius);margin-top:24px;
-  }
-  .score-banner .num{font-family:'Fraunces';font-size:48px;color:var(--gold);}
- 
-  /* Guide */
-  .guide-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
-  @media(max-width:720px){.guide-grid{grid-template-columns:1fr;}}
-  .guide-card{background:var(--ink-2);border:1px solid var(--line);border-radius:var(--radius);padding:0;overflow:hidden;height:fit-content;}
-  .guide-head{display:flex;align-items:center;gap:12px;padding:18px 20px;cursor:pointer;user-select:none;}
-  .guide-head .icon{font-size:20px;color:var(--gold);width:26px;text-align:center;flex-shrink:0;}
-  .guide-head h4{margin:0;font-size:15.5px;font-family:'Fraunces';font-weight:600;flex:1;}
-  .guide-head .chev{color:var(--teal);transition:transform .2s ease;font-size:13px;}
-  .guide-card.open .chev{transform:rotate(180deg);}
-  .guide-body{max-height:0;overflow:hidden;transition:max-height .3s ease;}
-  .guide-card.open .guide-body{max-height:600px;}
-  .guide-body ul{margin:0;padding:0 20px 18px 20px;list-style:none;}
-  .guide-body li{font-size:13.5px;color:#C7CFDA;line-height:1.55;padding:8px 0 8px 18px;border-top:1px dashed var(--line);position:relative;}
-  .guide-body li:first-child{border-top:none;}
-  .guide-body li::before{content:"—";position:absolute;left:0;color:var(--teal);}
- 
-  .empty{color:#7C8794;font-size:14px;padding:20px 0;}
-  footer{padding:24px;text-align:center;color:#5D6774;font-size:12px;border-top:1px solid var(--line);}
-</style>
-</head>
-<body>
- 
-<header>
-  <div class="wrap">
-    <div class="brand">
-      <span class="mark">&#10148;</span>
-      <div>
-        <h1>Waypoint</h1>
-        <p>AI travel assistant — plan, learn, pack.</p>
-      </div>
-    </div>
-  </div>
-  <div class="wrap">
-    <nav class="tabs">
-      <button class="tab-btn active" data-tab="plan">Plan a Trip</button>
-      <button class="tab-btn" data-tab="flashcards">Flashcards</button>
-      <button class="tab-btn" data-tab="quiz">Quiz</button>
-      <button class="tab-btn" data-tab="guide">Travel Guide</button>
-    </nav>
-  </div>
-</header>
- 
-<main class="wrap">
- 
-  <!-- PLAN TAB -->
-  <section class="panel active" id="panel-plan">
-    <div class="card">
-      <div class="grid2">
-        <div>
-          <label for="origin">Departing from (optional)</label>
-          <input type="text" id="origin" placeholder="e.g. Ahmedabad, India">
-        </div>
-        <div>
-          <label for="region">Region preference</label>
-          <input type="text" id="region" placeholder="e.g. Southeast Asia, or 'anywhere'" value="anywhere">
-        </div>
-        <div>
-          <label for="days">Trip length (days)</label>
-          <input type="number" id="days" min="1" max="30" value="5">
-        </div>
-        <div>
-          <label for="budget">Budget level</label>
-          <select id="budget">
-            <option value="shoestring">Shoestring</option>
-            <option value="moderate" selected>Moderate</option>
-            <option value="luxury">Luxury</option>
-          </select>
-        </div>
-        <div>
-          <label for="currency">Currency</label>
-          <select id="currency">
-            <option value="USD" selected>USD</option>
-            <option value="INR">INR</option>
-            <option value="EUR">EUR</option>
-            <option value="GBP">GBP</option>
-          </select>
-        </div>
-        <div>
-          <label for="party">Traveling as</label>
-          <select id="party">
-            <option value="solo">Solo</option>
-            <option value="couple">Couple</option>
-            <option value="family">Family</option>
-            <option value="friends">Friends</option>
-          </select>
-        </div>
-      </div>
-      <label>Interests</label>
-      <div class="chips" id="interestChips">
-        <div class="chip" data-val="food">Food</div>
-        <div class="chip" data-val="hiking">Hiking</div>
-        <div class="chip" data-val="museums">Museums</div>
-        <div class="chip" data-val="nightlife">Nightlife</div>
-        <div class="chip" data-val="beaches">Beaches</div>
-        <div class="chip" data-val="history">History</div>
-        <div class="chip" data-val="shopping">Shopping</div>
-        <div class="chip" data-val="wildlife">Wildlife</div>
-      </div>
-      <label for="known">Already know your destination? (optional)</label>
-      <input type="text" id="known" placeholder="Leave blank for AI suggestions">
-      <button class="btn" id="planBtn">Generate itinerary</button>
-      <div class="loading" id="planLoading" style="display:none;">
-        <div class="spinner"></div> Building your trip...
-      </div>
-    </div>
- 
-    <div class="results" id="planResults"></div>
-  </section>
- 
-  <!-- FLASHCARDS TAB -->
-  <section class="panel" id="panel-flashcards">
-    <div class="card">
-      <div class="fc-controls">
-        <div class="field">
-          <label for="fcDest">Destination</label>
-          <input type="text" id="fcDest" placeholder="e.g. Kyoto, Japan">
-        </div>
-        <div class="field" style="flex:0 0 120px;">
-          <label for="fcCount"># of cards</label>
-          <input type="number" id="fcCount" min="4" max="20" value="10">
-        </div>
-        <button class="btn" id="fcBtn" style="margin-bottom:16px;">Generate flashcards</button>
-      </div>
-      <div class="loading" id="fcLoading" style="display:none;"><div class="spinner"></div> Writing flashcards...</div>
-    </div>
-    <div class="fc-stage" id="fcStage"></div>
-  </section>
- 
-  <!-- QUIZ TAB -->
-  <section class="panel" id="panel-quiz">
-    <div class="card">
-      <div class="quiz-controls">
-        <div class="field" style="flex:1;">
-          <label for="qDest">Destination</label>
-          <input type="text" id="qDest" placeholder="e.g. Lisbon, Portugal">
-        </div>
-        <div class="field" style="flex:0 0 120px;">
-          <label for="qCount"># of questions</label>
-          <input type="number" id="qCount" min="3" max="15" value="8">
-        </div>
-        <button class="btn" id="qBtn" style="margin-bottom:16px;">Start quiz</button>
-      </div>
-      <div class="loading" id="qLoading" style="display:none;"><div class="spinner"></div> Preparing questions...</div>
-    </div>
-    <div id="quizStage"></div>
-  </section>
- 
-  <!-- GUIDE TAB -->
-  <section class="panel" id="panel-guide">
-    <div class="card" style="margin-bottom:24px;">
-      <h2 class="section-title" style="margin-bottom:6px;">Field Notes <span class="mono">reference</span></h2>
-      <p style="color:#B9C2CE;font-size:13.5px;margin:0;">General-purpose travel know-how — the stuff worth knowing before any trip, regardless of destination. Tap a card to expand.</p>
-    </div>
-    <div class="guide-grid" id="guideGrid"></div>
-  </section>
- 
-</main>
- 
-<footer>Waypoint — built with Claude · Runs on Google Cloud Run</footer>
- 
-<script>
-const API = ""; // same-origin
- 
-// ---- Tabs ----
-document.querySelectorAll(".tab-btn").forEach(btn=>{
-  btn.addEventListener("click", ()=>{
-    document.querySelectorAll(".tab-btn").forEach(b=>b.classList.remove("active"));
-    document.querySelectorAll(".panel").forEach(p=>p.classList.remove("active"));
-    btn.classList.add("active");
-    document.getElementById("panel-"+btn.dataset.tab).classList.add("active");
-  });
-});
- 
-// ---- Interest chips ----
-const selectedInterests = new Set();
-document.querySelectorAll("#interestChips .chip").forEach(chip=>{
-  chip.addEventListener("click", ()=>{
-    chip.classList.toggle("selected");
-    if(chip.classList.contains("selected")) selectedInterests.add(chip.dataset.val);
-    else selectedInterests.delete(chip.dataset.val);
-  });
-});
- 
-// ---- Plan ----
-document.getElementById("planBtn").addEventListener("click", async ()=>{
-  const btn = document.getElementById("planBtn");
-  const loading = document.getElementById("planLoading");
-  const resultsEl = document.getElementById("planResults");
-  btn.disabled = true; loading.style.display="flex"; resultsEl.innerHTML="";
- 
-  const payload = {
-    origin: document.getElementById("origin").value || null,
-    region_preference: document.getElementById("region").value || "anywhere",
-    trip_length_days: parseInt(document.getElementById("days").value || "5"),
-    budget_level: document.getElementById("budget").value,
-    currency: document.getElementById("currency").value,
-    interests: Array.from(selectedInterests),
-    party: document.getElementById("party").value,
-    known_destination: document.getElementById("known").value || null
-  };
- 
-  try{
-    const res = await fetch(API + "/api/plan", {
-      method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify(payload)
-    });
-    if(!res.ok) throw new Error(await res.text());
-    const data = await res.json();
-    renderPlan(data);
-  }catch(e){
-    resultsEl.innerHTML = `<div class="empty">Something went wrong: ${escapeHtml(String(e.message||e))}</div>`;
-  }finally{
-    btn.disabled=false; loading.style.display="none";
-  }
-});
- 
-function renderPlan(data){
-  const el = document.getElementById("planResults");
-  let html = "";
- 
-  // Destinations
-  html += `<h2 class="section-title">Destinations <span class="mono">step 1</span></h2><div class="dest-row">`;
-  (data.destinations||[]).forEach(d=>{
-    const isChosen = d.name === data.chosen_destination;
-    html += `<div class="dest-card ${isChosen?'chosen':''}">
-      <h3>${escapeHtml(d.name||"")}</h3>
-      <div class="country">${escapeHtml(d.country||"")}</div>
-      <p>${escapeHtml(d.why_it_fits||"")}</p>
-      <p><b>Best for:</b> ${escapeHtml(d.best_for||"")}</p>
-    </div>`;
-  });
-  html += `</div>`;
- 
-  // Itinerary
-  html += `<h2 class="section-title">Day-wise Itinerary <span class="mono">step 2</span></h2><div class="route">`;
-  (data.itinerary||[]).forEach(day=>{
-    html += `<div class="day">
-      <div class="daynum">DAY ${day.day}</div>
-      <h3>${escapeHtml(day.title||"")}</h3>
-      <div class="slot"><b>Morning —</b> ${escapeHtml(day.morning||"")}</div>
-      <div class="slot"><b>Afternoon —</b> ${escapeHtml(day.afternoon||"")}</div>
-      <div class="slot"><b>Evening —</b> ${escapeHtml(day.evening||"")}</div>
-      ${day.local_tip?`<div class="tip">Tip: ${escapeHtml(day.local_tip)}</div>`:""}
-    </div>`;
-  });
-  html += `</div>`;
- 
-  // Budget
-  const b = data.budget_estimate || {};
-  html += `<h2 class="section-title">Budget Estimate <span class="mono">step 3</span></h2>`;
-  html += `<div class="budget-total"><span class="amt">${b.currency||""} ${b.total_low??""}–${b.total_high??""}</span><span style="color:#B9C2CE;font-size:13px;">total for the trip</span></div>`;
-  html += `<div class="budget-grid">`;
-  const bd = b.breakdown || {};
-  Object.keys(bd).forEach(k=>{
-    html += `<div class="budget-item"><div class="k">${escapeHtml(k.replace(/_/g," "))}</div><div class="v">${escapeHtml(String(bd[k]))}</div></div>`;
-  });
-  html += `</div>`;
- 
-  // Packing
-  html += `<h2 class="section-title">Packing Checklist <span class="mono">step 4</span></h2><div class="pack-grid">`;
-  (data.packing_checklist||[]).forEach(cat=>{
-    html += `<div class="pack-cat"><h4>${escapeHtml(cat.category||"")}</h4><ul>`;
-    (cat.items||[]).forEach((item,i)=>{
-      html += `<li><label style="display:flex;gap:8px;align-items:flex-start;cursor:pointer;width:100%;">
-        <input type="checkbox" onchange="this.closest('li').classList.toggle('checked')">
-        <span>${escapeHtml(item)}</span>
-      </label></li>`;
-    });
-    html += `</ul></div>`;
-  });
-  html += `</div>`;
- 
-  el.innerHTML = html;
-}
- 
-// ---- Flashcards ----
-let fcData = [];
-let fcIndex = 0;
- 
-document.getElementById("fcBtn").addEventListener("click", async ()=>{
-  const dest = document.getElementById("fcDest").value.trim();
-  if(!dest) return;
-  const btn = document.getElementById("fcBtn");
-  const loading = document.getElementById("fcLoading");
-  const stage = document.getElementById("fcStage");
-  btn.disabled=true; loading.style.display="flex"; stage.innerHTML="";
-  try{
-    const res = await fetch(API+"/api/flashcards", {
-      method:"POST", headers:{"Content-Type":"application/json"},
-      body: JSON.stringify({destination: dest, count: parseInt(document.getElementById("fcCount").value||"10")})
-    });
-    if(!res.ok) throw new Error(await res.text());
-    fcData = await res.json();
-    fcIndex = 0;
-    renderFlashcard();
-  }catch(e){
-    stage.innerHTML = `<div class="empty">Couldn't generate flashcards: ${escapeHtml(String(e.message||e))}</div>`;
-  }finally{
-    btn.disabled=false; loading.style.display="none";
-  }
-});
- 
-function renderFlashcard(){
-  const stage = document.getElementById("fcStage");
-  if(!fcData.length){ stage.innerHTML = `<div class="empty">No flashcards yet.</div>`; return; }
-  const card = fcData[fcIndex];
-  stage.innerHTML = `
-    <div class="flashcard" id="fcEl">
-      <div class="inner">
-        <div class="face front">
-          <div class="cat">${escapeHtml(card.category||"")}</div>
-          <div class="txt">${escapeHtml(card.front||"")}</div>
-          <div class="hint">tap to flip</div>
-        </div>
-        <div class="face back">
-          <div class="cat">Answer</div>
-          <div class="txt">${escapeHtml(card.back||"")}</div>
-          <div class="hint">tap to flip back</div>
-        </div>
-      </div>
-    </div>
-    <div class="fc-nav">
-      <button id="fcPrev">&larr; Prev</button>
-      <span class="count">${fcIndex+1} / ${fcData.length}</span>
-      <button id="fcNext">Next &rarr;</button>
-    </div>
-  `;
-  document.getElementById("fcEl").addEventListener("click", (e)=>{
-    e.currentTarget.classList.toggle("flipped");
-  });
-  document.getElementById("fcPrev").addEventListener("click", ()=>{ fcIndex=(fcIndex-1+fcData.length)%fcData.length; renderFlashcard(); });
-  document.getElementById("fcNext").addEventListener("click", ()=>{ fcIndex=(fcIndex+1)%fcData.length; renderFlashcard(); });
-}
- 
-// ---- Quiz ----
-let quizData = [];
-let quizIndex = 0;
-let quizScore = 0;
-let quizAnswered = false;
- 
-document.getElementById("qBtn").addEventListener("click", async ()=>{
-  const dest = document.getElementById("qDest").value.trim();
-  if(!dest) return;
-  const btn = document.getElementById("qBtn");
-  const loading = document.getElementById("qLoading");
-  const stage = document.getElementById("quizStage");
-  btn.disabled=true; loading.style.display="flex"; stage.innerHTML="";
-  try{
-    const res = await fetch(API+"/api/quiz", {
-      method:"POST", headers:{"Content-Type":"application/json"},
-      body: JSON.stringify({destination: dest, count: parseInt(document.getElementById("qCount").value||"8")})
-    });
-    if(!res.ok) throw new Error(await res.text());
-    quizData = await res.json();
-    quizIndex = 0; quizScore = 0; quizAnswered=false;
-    renderQuiz();
-  }catch(e){
-    stage.innerHTML = `<div class="empty">Couldn't generate quiz: ${escapeHtml(String(e.message||e))}</div>`;
-  }finally{
-    btn.disabled=false; loading.style.display="none";
-  }
-});
- 
-function renderQuiz(){
-  const stage = document.getElementById("quizStage");
-  if(!quizData.length){ stage.innerHTML = `<div class="empty">No quiz yet.</div>`; return; }
- 
-  if(quizIndex >= quizData.length){
-    stage.innerHTML = `<div class="score-banner">
-      <div class="num">${quizScore} / ${quizData.length}</div>
-      <p style="color:#C7CFDA;">You scored ${Math.round(100*quizScore/quizData.length)}%</p>
-      <button class="btn" id="qRestart" style="margin-top:10px;">Try again</button>
-    </div>`;
-    document.getElementById("qRestart").addEventListener("click", ()=>{
-      quizIndex=0; quizScore=0; quizAnswered=false; renderQuiz();
-    });
-    return;
-  }
- 
-  const q = quizData[quizIndex];
-  quizAnswered = false;
-  let optsHtml = "";
-  q.options.forEach((opt,i)=>{
-    optsHtml += `<button class="opt" data-i="${i}">${escapeHtml(opt)}</button>`;
-  });
- 
-  stage.innerHTML = `<div class="qcard">
-    <div class="qnum">QUESTION ${quizIndex+1} OF ${quizData.length} &middot; SCORE ${quizScore}</div>
-    <h3>${escapeHtml(q.question)}</h3>
-    ${optsHtml}
-    <div class="explain" id="qExplain" style="display:none;"></div>
-    <div class="quiz-nav">
-      <span></span>
-      <button class="btn secondary" id="qNext" style="display:none;">Next &rarr;</button>
-    </div>
-  </div>`;
- 
-  document.querySelectorAll(".opt").forEach(b=>{
-    b.addEventListener("click", ()=>{
-      if(quizAnswered) return;
-      quizAnswered = true;
-      const chosen = parseInt(b.dataset.i);
-      document.querySelectorAll(".opt").forEach((ob,i)=>{
-        ob.disabled = true;
-        if(i === q.correct_index) ob.classList.add("correct");
-        else if(i === chosen) ob.classList.add("wrong");
-      });
-      if(chosen === q.correct_index) quizScore++;
-      const ex = document.getElementById("qExplain");
-      ex.style.display = "block";
-      ex.textContent = q.explanation || "";
-      document.getElementById("qNext").style.display = "inline-block";
-    });
-  });
-  document.getElementById("qNext").addEventListener("click", ()=>{
-    quizIndex++;
-    renderQuiz();
-  });
-}
- 
-// ---- Guide (static informative content) ----
-const GUIDE = [
-  {icon:"&#128203;", title:"Documents & Visas", items:[
-    "Check passport validity: most countries require 6 months of validity remaining beyond your travel dates.",
-    "Look up visa requirements early — e-visas can take days, embassy visas can take weeks.",
-    "Keep digital copies of your passport, visa, tickets and insurance in cloud storage and offline on your phone.",
-    "Register with your country's embassy or a travel-alert service for trips to remote or higher-risk regions."
-  ]},
-  {icon:"&#128176;", title:"Money & Budgeting", items:[
-    "Tell your bank/card issuer your travel dates to avoid fraud holds.",
-    "Carry two payment methods (one card, one backup) plus a small amount of local cash for markets and tips.",
-    "Use ATMs over currency-exchange counters at airports — the rates are almost always worse at the counter.",
-    "Budget a 10–15% buffer on top of your estimate for the unplanned meal, taxi, or souvenir."
-  ]},
-  {icon:"&#127973;", title:"Health & Safety", items:[
-    "Check if your destination needs specific vaccinations or malaria prophylaxis — ideally 4–6 weeks ahead.",
-    "Buy travel insurance that covers medical evacuation, not just trip cancellation.",
-    "Save the local emergency number and your embassy's address on your phone before you land.",
-    "Pack a small kit: rehydration salts, any personal prescriptions in original packaging, and basic pain relief."
-  ]},
-  {icon:"&#127760;", title:"Cultural Etiquette", items:[
-    "Learn 5 local phrases: hello, thank you, please, excuse me, and 'how much'. It changes how you're treated.",
-    "Research dress norms for religious sites — many require covered shoulders/knees regardless of climate.",
-    "Ask before photographing people, especially in markets, villages, or religious ceremonies.",
-    "Tipping norms vary hugely — confirm before you go so you neither under- nor over-tip."
-  ]},
-  {icon:"&#9992;", title:"Booking & Timing", items:[
-    "Flights are typically cheapest 6–8 weeks out for domestic and 2–5 months out for international travel.",
-    "Shoulder season (just before/after peak) usually gives 70–80% of the experience for 40–50% of the cost.",
-    "Leave one buffer day between long-haul flights and any multi-day trek, tour start, or event you can't miss.",
-    "Cross-check total cost including baggage and seat fees — the 'cheapest' fare isn't always cheapest."
-  ]},
-  {icon:"&#127761;", title:"Packing Philosophy", items:[
-    "Lay out everything you planned to bring, then remove a third of it — most travelers overpack.",
-    "Pack by outfit, not by item category, so you can see gaps and overlaps at a glance.",
-    "One 'universal' outfit that can go from daytime to a nicer dinner saves real suitcase space.",
-    "Keep a printed or offline copy of your itinerary and bookings in case your phone dies or has no signal."
-  ]}
-];
- 
-function renderGuide(){
-  const grid = document.getElementById("guideGrid");
-  if(grid.dataset.rendered) return;
-  grid.dataset.rendered = "1";
-  grid.innerHTML = GUIDE.map((g,i)=>`
-    <div class="guide-card${i===0?' open':''}" id="gcard-${i}">
-      <div class="guide-head" onclick="document.getElementById('gcard-${i}').classList.toggle('open')">
-        <span class="icon">${g.icon}</span>
-        <h4>${escapeHtml(g.title)}</h4>
-        <span class="chev">&#9660;</span>
-      </div>
-      <div class="guide-body"><ul>${g.items.map(it=>`<li>${escapeHtml(it)}</li>`).join("")}</ul></div>
-    </div>
-  `).join("");
-}
- 
-// render guide content the first time its tab is opened (and also eagerly, it's static/cheap)
-renderGuide();
- 
-function escapeHtml(str){
-  const div = document.createElement("div");
-  div.textContent = str;
-  return div.innerHTML;
-}
-</script>
-</body>
-</html>
+# ✈️ AI Travel Agent – Frontend
+
+A modern and interactive frontend for the **AI Travel Agent** built with **Streamlit**. This application enables users to enter travel queries in natural language and receive AI-generated flight and hotel recommendations through a clean, responsive web interface.
+
+## 📌 Features
+
+* 🌍 Simple and intuitive user interface
+* ✈️ Natural language travel query input
+* 🏨 Displays AI-generated flight and hotel recommendations
+* 💰 Shows travel prices and booking information
+* 📧 Send travel details directly via email
+* 🎨 Custom CSS for an enhanced user experience
+* 🔄 Session state management for maintaining user interactions
+* ⚡ Fast and lightweight Streamlit application
+
+## 🛠️ Technologies Used
+
+* Python
+* Streamlit
+* LangChain
+* LangGraph
+* OpenAI API
+* SMTP Email Service
+* Python Dotenv
+
+## 📂 Project Structure
+
+```text
+frontend/
+│── app.py                 # Main Streamlit application
+│── requirements.txt       # Project dependencies
+│── .env                   # Environment variables
+│── README.md              # Project documentation
+│── images/
+│   └── ai-travel.png      # Sidebar image
+```
+
+## 🚀 Installation
+
+### 1. Clone the repository
+
+```bash
+git clone https://github.com/your-username/ai-travel-agent-frontend.git
+cd ai-travel-agent-frontend
+```
+
+### 2. Create a virtual environment (Optional)
+
+```bash
+python -m venv venv
+```
+
+Activate the environment:
+
+**Windows**
+
+```bash
+venv\Scripts\activate
+```
+
+**macOS/Linux**
+
+```bash
+source venv/bin/activate
+```
+
+### 3. Install dependencies
+
+```bash
+pip install -r requirements.txt
+```
+
+### 4. Configure environment variables
+
+Create a `.env` file in the project root and add:
+
+```env
+OPENAI_API_KEY=your_openai_api_key
+SMTP_EMAIL=your_email@gmail.com
+SMTP_PASSWORD=your_gmail_app_password
+```
+
+### 5. Run the application
+
+```bash
+streamlit run app.py
+```
+
+The application will start locally at:
+
+```text
+http://localhost:8501
+```
+
+## 💻 How to Use
+
+1. Launch the Streamlit application.
+2. Enter your travel query (for example, "Plan a 5-day trip to Dubai with flights and hotels").
+3. Click **Get Travel Information**.
+4. View the AI-generated travel recommendations.
+5. Optionally send the travel details via email using the integrated email form.
+
+## 📸 Interface
+
+The frontend includes:
+
+* AI Travel Agent dashboard
+* Travel query text area
+* Travel information display section
+* Email sharing form
+* Sidebar branding image
+
+## 🔗 Backend Integration
+
+This frontend communicates with the AI backend, which is responsible for:
+
+* Processing user queries
+* Calling flight and hotel search tools
+* Generating AI responses
+* Managing conversation workflow using LangGraph
+
+## 🔮 Future Improvements
+
+* Dark mode support
+* Chat-style conversation interface
+* Voice input
+* Interactive maps
+* Travel itinerary timeline
+* User authentication
+* Booking integration
+* Mobile-responsive enhancements
+
+## 📄 License
+
+This project is developed for educational and demonstration purposes.
