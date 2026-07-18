@@ -1,0 +1,41 @@
+package com.waypoint.travel.service;
+
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
+import org.springframework.http.*;
+import java.util.Map;
+
+@Service
+public class AiService {
+
+    @Value("${LLM_API_KEY}")
+    private String apiKey;
+
+    public String callLlm(String prompt) {
+        String endpoint = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=" + apiKey;
+        RestTemplate restTemplate = new RestTemplate();
+        
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        
+        // Constructing the exact JSON payload expected by Gemini
+        String requestBody = String.format("""
+            {
+              "contents": [{"parts": [{"text": "%s"}]}],
+              "generationConfig": {"response_mime_type": "application/json"}
+            }
+            """, prompt.replace("\"", "\\\""));
+
+        HttpEntity<String> request = new HttpEntity<>(requestBody, headers);
+        ResponseEntity<Map> response = restTemplate.postForEntity(endpoint, request, Map.class);
+        
+        // Extracting the text from the Gemini response structure
+        Map<String, Object> body = response.getBody();
+        List<Map<String, Object>> candidates = (List<Map<String, Object>>) body.get("candidates");
+        Map<String, Object> content = (Map<String, Object>) candidates.get(0).get("content");
+        List<Map<String, Object>> parts = (List<Map<String, Object>>) content.get("parts");
+        
+        return (String) parts.get(0).get("text");
+    }
+}
