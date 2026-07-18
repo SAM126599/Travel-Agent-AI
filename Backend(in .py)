@@ -1,0 +1,73 @@
+import os
+import json
+from fastapi import FastAPI, HTTPException
+from pydantic import BaseModel
+from typing import List, Optional
+import requests
+
+app = FastAPI(title="Travel AI Assistant")
+
+# Use the API key injected by GCP Secret Manager
+API_KEY = os.getenv("LLM_API_KEY")
+LLM_ENDPOINT = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={API_KEY}"
+
+class PlanRequest(BaseModel):
+    destination: str
+    days: int
+    budget: str
+    interests: List[str]
+
+class LearnRequest(BaseModel):
+    destination: str
+
+def call_llm(prompt: str) -> dict:
+    if not API_KEY:
+        raise HTTPException(status_code=500, detail="API Key not configured")
+    
+    payload = {
+        "contents": [{"parts": [{"text": prompt}]}],
+        "generationConfig": {"response_mime_type": "application/json"}
+    }
+    
+    response = requests.post(LLM_ENDPOINT, json=payload)
+    if response.status_code != 200:
+        raise HTTPException(status_code=502, detail="LLM Provider Error")
+        
+    try:
+        raw_json = response.json()["candidates"][0]["content"]["parts"][0]["text"]
+        return json.loads(raw_json)
+    except Exception:
+        raise HTTPException(status_code=500, detail="Failed to parse LLM response")
+
+@app.post("/api/plan")
+def generate_plan(req: PlanRequest):
+    prompt = f"""
+    Create a travel itinerary for {req.destination} for {req.days} days on a {req.budget} budget.
+    Interests: {', '.join(req.interests)}.
+    Output valid JSON strictly matching this schema:
+    {{
+      "destination_suggestions": [{{"city": "str", "reason": "str"}}],
+      "itinerary": [{{"day": int, "activities": [{{"time": "str", "activity": "str", "cost": int}}]}}],
+      "budget_estimate": {{"total": int, "breakdown": {{"accommodation": int, "food": int}}}},
+      "packing_checklist": [{{"category": "str", "items": ["str"]}}]
+    }}
+    """
+    return call_llm(prompt)
+
+@app.post("/api/flashcards")
+def generate_flashcards(req: LearnRequest):
+    prompt = f"""
+    Create 5 cultural/language flashcards for {req.destination}.
+    Output valid JSON strictly matching this schema:
+    [{{"front": "str", "back": "str", "category": "language|culture"}}]
+    """
+    return call_llm(prompt)
+
+@app.post("/api/quiz")
+def generate_quiz(req: LearnRequest):
+    prompt = f"""
+    Create a 3-question multiple choice trivia quiz about {req.destination}.
+    Output valid JSON strictly matching this schema:
+    [{{"question": "str", "options": ["str", "str", "str", "str"], "correct_index": int, "explanation": "str"}}]
+    """
+    return call_llm(prompt)
