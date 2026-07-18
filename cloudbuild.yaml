@@ -1,0 +1,31 @@
+steps:
+  # Build the container image
+  - name: "gcr.io/cloud-builders/docker"
+    args: ["build", "-t", "$_REGION-docker.pkg.dev/$PROJECT_ID/$_REPO/waypoint:$SHORT_SHA", "./app"]
+
+  # Push it to Artifact Registry
+  - name: "gcr.io/cloud-builders/docker"
+    args: ["push", "$_REGION-docker.pkg.dev/$PROJECT_ID/$_REPO/waypoint:$SHORT_SHA"]
+
+  # Deploy to Cloud Run
+  - name: "gcr.io/google.com/cloudsdktool/cloud-sdk"
+    entrypoint: gcloud
+    args:
+      - "run"
+      - "deploy"
+      - "waypoint"
+      - "--image=$_REGION-docker.pkg.dev/$PROJECT_ID/$_REPO/waypoint:$SHORT_SHA"
+      - "--region=$_REGION"
+      - "--platform=managed"
+      - "--allow-unauthenticated"
+      - "--set-secrets=ANTHROPIC_API_KEY=anthropic-api-key:latest"
+
+images:
+  - "$_REGION-docker.pkg.dev/$PROJECT_ID/$_REPO/waypoint:$SHORT_SHA"
+
+substitutions:
+  _REGION: asia-south1
+  _REPO: waypoint-repo
+
+options:
+  logging: CLOUD_LOGGING_ONLY
